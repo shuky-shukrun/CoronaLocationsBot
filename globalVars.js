@@ -21,3 +21,11 @@ function getBotToken() {
 function getLastUpdate() {
     return SpreadsheetApp.openById(settings_spreadsheet_id).getSheets()[0].getRange('B3').getValue();
 }
+
+function getInstructions() {
+    return SpreadsheetApp.openById(settings_spreadsheet_id).getSheets()[0].getRange('B4').getValue();
+}
+
+function getOkMessage() {
+    return SpreadsheetApp.openById(settings_spreadsheet_id).getSheets()[0].getRange('B5').getValue();
+}

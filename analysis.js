@@ -55,7 +55,7 @@ function searchMatchLocations(user_id, user_locations_file) {
                     var sick_end_time = sick_time[1];
 
                     if(isCloseTime(sick_start_time, user_end_time)) {
-                        sendMessage(user_id, sickLocation.locationName + ", " + sickLocation.date + ", " + sickLocation.hours);
+                        sendMessage(user_id, sickLocation.date + ', ' + sickLocation.hours + '%0A' + sickLocation.locationName);
                         sendMessage(user_id, map_url + sickLocation.x + ',' + sickLocation.y);
                         flag = true;
                     }
@@ -67,7 +67,7 @@ function searchMatchLocations(user_id, user_locations_file) {
 
     }
     if(!flag) {
-        sendMessage(user_id, 'לא נמצאה התאמת מיקום לאף חולה מאומת. נראה שאתם בטוחים לעת עתה :) מומלץ להריץ את הבדיקה פעם ביום.');
+        sendMessage(user_id, getOkMessage());
     }
 
 }

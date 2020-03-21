@@ -35,8 +35,7 @@ function doPost(e) {
     var file_id = contents.message.document;
     // if no file exist - say hi
     if(!file_id) {
-        sendMessage(user_id, 'שלום, כדי לבדוק האם עליכם להיכנס לבידוד, שלחו את קובץ הסטורית המיקומים שלכם. אנו מתחייבים שלא לעשות שום שימוש במידע שימסר למעט בדיקת הבידוד. המידע לא ישמר לאחר הבדיקה.');
-        sendMessage(user_id, 'את קובץ הסטורית המיקומים שלכם ניתן להוריד כאן: ' + google_takeout_url + ' יש להוריד את הסטורית המיקומים, לחלץ את קובץ הזיפ, ולשלוח את קובץ הjson של החודש הנוכחי.');
+        sendMessage(user_id, getInstructions());
         return;
     }
 
@@ -45,7 +44,7 @@ function doPost(e) {
     // get file path on telegram server
     var file_path = getFilePath(file_id);
     var user_locations_file = getJsonFileFromTelegramServer(file_path);
-    sendMessage(user_id, 'מעבד נתונים, אנא המתן...');
+    sendMessage(user_id, 'מעבד נתונים, אנא המתינו...');
 
     searchMatchLocations(user_id, user_locations_file);
 

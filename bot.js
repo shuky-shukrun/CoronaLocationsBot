@@ -30,7 +30,11 @@ function doPost(e) {
     // parse the message content as JSON
     var contents = JSON.parse(e.postData.contents);
     var user_id = contents.message.from.id;
-
+    var text = contents.message.text;
+    switch(text) {
+        case '/help':
+            sendMessage(user_id, 'getInstructions()');
+    }
     // try to parse file
     var file_id = contents.message.document;
     // if no file exist - say hi

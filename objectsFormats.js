@@ -52,4 +52,8 @@ health ministry location object (see also sicksLocationsExample.json)
     "y": 35.28242140000007
 }
 
+URI symbols:
+new line: %0A
+
+
 */

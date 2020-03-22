@@ -72,17 +72,37 @@ function doPost(e) {
     // get file id
     file_id = contents.message.document.file_id;
     // get file path on telegram server
-    var file_path = getFilePath(file_id);
-
-    if(contents.message.document.mime_type === 'application/zip') {
-        sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
-        var user_locations_file = getJsonFileFromZip(file_path);
+    try {
+        var file_path = getFilePath(file_id);
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        return;
     }
-    else {
-        var user_locations_file = getJsonFileFromTelegramServer(file_path);
-    }
-    searchMatchLocations(user_id, user_locations_file);
 
+    try {
+        switch(contents.message.document.mime_type) {
+            case 'application/zip':
+                sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
+                var user_locations_file = getJsonFileFromZip(file_path);
+                break;
+            case 'application/json':
+                var user_locations_file = getJsonFileFromTelegramServer(file_path);
+                break;
+            default:
+                sendMessage(user_id, 'סוג קובץ לא נתמך');
+                return; 
+        }
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        return;
+    }
+    
+    try{
+        searchMatchLocations(user_id, user_locations_file);
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        return;
+    }
     sendMessage(user_id, 'עדכון מפה אחרון: ' + getLastUpdate());
 }
 
@@ -104,7 +124,9 @@ function getJsonFileFromZip(file_path) {
     var thisBlob = zipFile.getBlob();
     var convertedBlob = thisBlob.setContentTypeFromExtension();
     var thisUnzip = Utilities.unzip(convertedBlob);
-    var extract = thisUnzip.filter(e => e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_MARCH.json');
+    var extract = thisUnzip.filter(e => 
+        e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_MARCH.json'
+    || e.getName() === 'Takeout/היסטוריית מיקומים/Semantic Location History/2020/2020_MARCH.json');
     var str = extract[0].getDataAsString();
     var js = JSON.parse(str);
     return js;

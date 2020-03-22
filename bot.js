@@ -33,15 +33,40 @@ function doPost(e) {
     var text = contents.message.text;
     switch(text) {
         case '/help':
-            sendMessage(user_id, 'getInstructions()');
+            sendMessage(user_id, getHelp());
+            return;
+        case '/faq':
+            sendMessage(user_id, getFaq());
+            return;
+        case '/about':
+            sendMessage(user_id, getAbout());
+            return;
+        case '/donate':
+            sendMessage(user_id, getDonate());
+            return;     
+        case '/thanks':
+            sendMessage(user_id, getThanks());
+            return;
+        case '/contact':
+            sendMessage(user_id, getContactUs());
+            return;     
+        case '/limits':
+            sendMessage(user_id, getLimitations());
+            return;
+        case '/commands':
+            sendMessage(user_id, getCommands());
+            return;
+        default:
+            // try to parse file
+            var file_id = contents.message.document;
+            // if no file exist - say hi
+            if(!file_id) {
+                sendMessage(user_id, getInstructions());
+                return;
+            }
+            break;
     }
-    // try to parse file
-    var file_id = contents.message.document;
-    // if no file exist - say hi
-    if(!file_id) {
-        sendMessage(user_id, getInstructions());
-        return;
-    }
+
 
     // get file id
     file_id = contents.message.document.file_id;

@@ -68,23 +68,27 @@ function doPost(e) {
     }
 
 
+    sendMessage(user_id, 'מעבד נתונים, אנא המתינו...');
     // get file id
     file_id = contents.message.document.file_id;
     // get file path on telegram server
     var file_path = getFilePath(file_id);
-    var user_locations_file = getJsonFileFromTelegramServer(file_path);
-    sendMessage(user_id, 'מעבד נתונים, אנא המתינו...');
 
+    if(contents.message.document.mime_type === 'application/zip') {
+        sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
+        var user_locations_file = getJsonFileFromZip(file_path);
+    }
+    else {
+        var user_locations_file = getJsonFileFromTelegramServer(file_path);
+    }
     searchMatchLocations(user_id, user_locations_file);
 
     sendMessage(user_id, 'עדכון מפה אחרון: ' + getLastUpdate());
-
 }
 
 function getFilePath(file_id) {
     var response = UrlFetchApp.fetch(url + getBotToken() + '/getFile?file_id=' + file_id);
     var file_path = JSON.parse(response.getContentText()).result.file_path;
-    Logger.log(file_path);
     return file_path;
 }
 
@@ -92,4 +96,17 @@ function getJsonFileFromTelegramServer(file_path) {
     var json_file = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
     json_file = JSON.parse(json_file);
     return json_file;
+}
+
+function getJsonFileFromZip(file_path) {
+
+    var zipFile = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
+    var thisBlob = zipFile.getBlob();
+    var convertedBlob = thisBlob.setContentTypeFromExtension();
+    var thisUnzip = Utilities.unzip(convertedBlob);
+    var extract = thisUnzip.filter(e => e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_MARCH.json');
+    var str = extract[0].getDataAsString();
+    var js = JSON.parse(str);
+    return js;
+    
 }

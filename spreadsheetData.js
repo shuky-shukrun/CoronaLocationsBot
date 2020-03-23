@@ -56,3 +56,7 @@ function getThanks() {
 function getCommands() {
     return getInfoFromSpreadsheet('B13');
 }
+
+function getManualUpload() {
+    return getInfoFromSpreadsheet('B14');
+}

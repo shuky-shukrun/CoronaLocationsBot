@@ -56,6 +56,9 @@ function doPost(e) {
         case '/commands':
             sendMessage(user_id, getCommands());
             return;
+        case '/manualupload':
+            sendMessage(user_id, getManualUpload());
+            return;
         default:
             // try to parse file
             var file_id = contents.message.document;
@@ -75,32 +78,34 @@ function doPost(e) {
     try {
         var file_path = getFilePath(file_id);
     } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        sendMessage(user_id, 'אירעה שגיאה בקבלת כתובת הקובץ מהשרת. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
         return;
     }
 
     try {
         switch(contents.message.document.mime_type) {
             case 'application/zip':
-                sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
-                var user_locations_file = getJsonFileFromZip(file_path);
-                break;
-            case 'application/json':
-                var user_locations_file = getJsonFileFromTelegramServer(file_path);
+                try {
+                    sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
+                    var user_locations_file = getJsonFileFromZip(file_path);
+                } catch (error) {
+                    sendMessage(user_id, 'אירעה שגיאה בפענוח קובץ זיפ. ניתן להעלות את קובץ המיקום ידנית.%0Aלהוראות לחצו /manualupload %0Aקוד שגיאה:' + encodeURI(error.message) + '%0A' + contents.message.document.mime_type);
+                    return;
+                }
                 break;
             default:
-                sendMessage(user_id, 'סוג קובץ לא נתמך');
-                return; 
+                var user_locations_file = getJsonFileFromTelegramServer(file_path);
+                break; 
         }
     } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        sendMessage(user_id, 'אירעה שגיאה בהורדת הקובץ מהשרת. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message) + '%0A' + contents.message.document.mime_type);
         return;
     }
     
     try{
         searchMatchLocations(user_id, user_locations_file);
     } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בפענוח הקובץ. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
+        sendMessage(user_id, 'אירעה שגיאה בניתוח נתוני המיקום. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message));
         return;
     }
     sendMessage(user_id, 'עדכון מפה אחרון: ' + getLastUpdate());

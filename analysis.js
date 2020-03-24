@@ -22,7 +22,7 @@ function searchInJson(source, name) {
 
 function searchMatchLocations(user_id, user_locations_file) {
   
-    var flag = false;
+    var found_match = false;
 
     var timelineObjects = user_locations_file.timelineObjects;
     var placeVisit = searchInJson(timelineObjects, 'placeVisit');
@@ -38,38 +38,37 @@ function searchMatchLocations(user_id, user_locations_file) {
             
             // if coordinates are available (for some reason, sometime they doesn't)
             if (userLocation && userLocation.location && userLocation.location.latitudeE7) {
-                // get visited place coordinates
-                var user_lat = userLocation.location.latitudeE7 / div;
-                var user_long = userLocation.location.longitudeE7 / div;
+                // get user visited place coordinates
+                var user_lat = userLocation.location.latitudeE7 / tenMillion;
+                var user_long = userLocation.location.longitudeE7 / tenMillion;
                 
                 // check against sicks locations
-                if(isCloseLocation(user_lat, sickLocation.x, user_long, sickLocation.y)) {
+                if(isCloseLocation(user_lat, sickLocation.y, user_long, sickLocation.x)) {
 
-                    var user_start_time = userLocation.duration.startTimestampMs;
                     var user_end_time = userLocation.duration.endTimestampMs;
-                    user_start_time = new Date(parseInt(user_start_time));
                     user_end_time = new Date(parseInt(user_end_time));
 
                     var sick_time = getSickTime(sickLocation);
                     var sick_start_time = sick_time[0];
-                    var sick_end_time = sick_time[1];
 
                     if(isCloseTime(sick_start_time, user_end_time)) {
-                        sendMessage(user_id, sickLocation.date + ', ' + sickLocation.hours + '%0A' + sickLocation.locationName);
-                        sendMessage(user_id, map_url + sickLocation.x + ',' + sickLocation.y);
-                        flag = true;
+                        var locationMsg = encodeURI(sickLocation.date + ', ' + sickLocation.hours + '\n' + sickLocation.locationName + '\n' + map_url + sickLocation.y + ',' + sickLocation.x);
+                        try {
+                            // when error occur in sendMessage dou to invalid text, it may expose some sensitive data.
+                            // so in case of error we want to make sure we know what is the exact message that we send (no parameters)
+                            sendMessage(user_id, locationMsg);
+                        } catch(error) {
+                            sendMessage(user_id, 'נמצאה התאמת מיקום אך אירעה שגיאה בעת שליחת ההודעה. נסו שנית או פנו למידע המפורסם על ידי משרד הבריאות.');
+                        }
+                        found_match = true;
                     }
                 }
-
             }
-
         }
-
     }
-    if(!flag) {
+    if(!found_match) {
         sendMessage(user_id, getOkMessage());
     }
-
 }
 
 function isCloseLocation(user_lat, sick_lat, user_long, sick_long) {
@@ -96,4 +95,3 @@ function getSickTime(sickLocation) {
     var end_date = new Date(year, month, day,end_hour, end_min);
     return [start_date, end_date];
 }
-

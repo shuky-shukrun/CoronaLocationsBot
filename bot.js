@@ -100,7 +100,6 @@ function doPost(e) {
         default:
             console.log('json file sent to the bot');
             var user_locations_file = getJsonFileFromTelegramServer(user_id, file_path);
-            console.log(user_locations_file);
             user_locations_arr.push(user_locations_file);
             break; 
     }

@@ -20,54 +20,38 @@ function searchInJson(source, name) {
     return results;
 }
 
-function searchMatchLocations(user_id, user_locations_file) {
+function searchMatchLocations(user_id, user_locations_arr) {
   
-    var found_match = false;
+    try {
+        var found_match = false;
+        console.log('searchMatchLocations');
+        for(let i=0; i< user_locations_arr.length; i++) {
+            const user_locations_file = user_locations_arr[i];
+            console.log('searchMatchLocations user_locations_file: ' + user_locations_file);
 
-    var timelineObjects = user_locations_file.timelineObjects;
-    var placeVisit = searchInJson(timelineObjects, 'placeVisit');
+            var timelineObjects = user_locations_file.timelineObjects;
+            var placeVisit = searchInJson(timelineObjects, 'placeVisit');
+            console.log('searchMatchLocations placeVisit: ' + placeVisit);
 
-    var corona_locations = getJsonFileFromDrive(sicks_locations_file_id);
+            var corona_locations = getJsonFileFromDrive(sicks_locations_file_id);
 
-    // for each location the user visit, check against the corona locations (the second loop)
-    for (let i = 0; i < placeVisit.length; i++) {
-        const userLocation = placeVisit[i];
-        
-        for (let j = 0; j < corona_locations.length; j++) {
-            const sickLocation = corona_locations[j];
-            
-            // if coordinates are available (for some reason, sometime they doesn't)
-            if (userLocation && userLocation.location && userLocation.location.latitudeE7) {
-                // get user visited place coordinates
-                var user_lat = userLocation.location.latitudeE7 / tenMillion;
-                var user_long = userLocation.location.longitudeE7 / tenMillion;
-                
-                // check against sicks locations
-                if(isCloseLocation(user_lat, sickLocation.y, user_long, sickLocation.x)) {
+            // for each location the user visit, check against the corona locations (the second loop)
+            for(let j=0; j< placeVisit.length; j++) {
+                const user_location = placeVisit[j];
 
-                    var user_end_time = userLocation.duration.endTimestampMs;
-                    user_end_time = new Date(parseInt(user_end_time));
-
-                    var sick_time = getSickTime(sickLocation);
-                    var sick_start_time = sick_time[0];
-
-                    if(isCloseTime(sick_start_time, user_end_time)) {
-                        var locationMsg = encodeURI(sickLocation.date + ', ' + sickLocation.hours + '\n' + sickLocation.locationName + '\n' + map_url + sickLocation.y + ',' + sickLocation.x);
-                        try {
-                            // when error occur in sendMessage dou to invalid text, it may expose some sensitive data.
-                            // so in case of error we want to make sure we know what is the exact message that we send (no parameters)
-                            sendMessage(user_id, locationMsg);
-                        } catch(error) {
-                            sendMessage(user_id, 'נמצאה התאמת מיקום אך אירעה שגיאה בעת שליחת ההודעה. נסו שנית או פנו למידע המפורסם על ידי משרד הבריאות.');
-                        }
+                for(let k=0; k< corona_locations.length; k++) {
+                    const sick_location = corona_locations[k];
+                    var is_match = foundMatchLocation(user_id, user_location, sick_location);
+                    if(is_match && found_match == false) 
                         found_match = true;
-                    }
                 }
             }
         }
-    }
-    if(!found_match) {
-        sendMessage(user_id, getOkMessage());
+        console.log('file analyzed');
+        return found_match;
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בניתוח נתוני המיקום. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message));
+        throw new Error('אירעה שגיאה בניתוח נתוני המיקום. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message));
     }
 }
 
@@ -94,4 +78,36 @@ function getSickTime(sickLocation) {
     var start_date = new Date(year, month, day,start_hour, start_min);
     var end_date = new Date(year, month, day,end_hour, end_min);
     return [start_date, end_date];
+}
+
+function foundMatchLocation(user_id, user_location, sick_location) {
+    // if coordinates are available (for some reason, sometime they doesn't)
+    if (user_location && user_location.location && user_location.location.latitudeE7) {
+        // get user visited place coordinates
+        var user_lat = user_location.location.latitudeE7 / tenMillion;
+        var user_long = user_location.location.longitudeE7 / tenMillion;
+        
+        // check against sicks locations
+        if(isCloseLocation(user_lat, sick_location.y, user_long, sick_location.x)) {
+
+            var user_end_time = user_location.duration.endTimestampMs;
+            user_end_time = new Date(parseInt(user_end_time));
+
+            var sick_time = getSickTime(sick_location);
+            var sick_start_time = sick_time[0];
+
+            if(isCloseTime(sick_start_time, user_end_time)) {
+                var locationMsg = encodeURI(sick_location.date + ', ' + sick_location.hours + '\n' + sick_location.locationName + '\n' + map_url + sick_location.y + ',' + sick_location.x);
+                try {
+                    // when error occur in sendMessage dou to invalid text, it may expose some sensitive data.
+                    // so in case of error we want to make sure we know what is the exact message that we send (no parameters)
+                    sendMessage(user_id, locationMsg);
+                } catch(error) {
+                    sendMessage(user_id, 'נמצאה התאמת מיקום אך אירעה שגיאה בעת שליחת ההודעה. נסו שנית או פנו למידע המפורסם על ידי משרד הבריאות.');
+                }
+                return true;
+            }
+        }
+    }
+    return false;
 }

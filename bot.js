@@ -15,8 +15,7 @@ function setWebhook() {
 
 // receive id and text and send it to the user
 function sendMessage(id, text) {
-    var response = UrlFetchApp.fetch(url + getBotToken() + '/sendMessage?chat_id=' + id + '&text=' + text);
-    Logger.log(response.getContentText());
+    UrlFetchApp.fetch(url + getBotToken() + '/sendMessage?chat_id=' + id + '&text=' + text);
 }
 
 // handle incoming messages from the user
@@ -75,69 +74,91 @@ function doPost(e) {
     // get file id
     file_id = contents.message.document.file_id;
     // get file path on telegram server
-    try {
-        var file_path = getFilePath(file_id);
-    } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בקבלת כתובת הקובץ מהשרת. עמכם הסליחה. קוד שגיאה:' + encodeURI(error.message));
-        return;
-    }
+    var file_path = getFilePath(user_id, file_id);
 
-    try {
-        switch(contents.message.document.mime_type) {
-            case 'application/zip':
-                try {
-                    sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
-                    var user_locations_file = getJsonFileFromZip(file_path);
-                } catch (error) {
-                    sendMessage(user_id, 'אירעה שגיאה בפענוח קובץ זיפ. ניתן להעלות את קובץ המיקום ידנית.%0Aלהוראות לחצו /manualupload %0Aקוד שגיאה:' + encodeURI(error.message) + '%0A' + contents.message.document.mime_type);
-                    return;
-                }
-                break;
-            default:
-                var user_locations_file = getJsonFileFromTelegramServer(file_path);
-                break; 
-        }
-    } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בהורדת הקובץ מהשרת. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message) + '%0A' + contents.message.document.mime_type);
-        return;
+    var user_locations_arr = [];
+    switch(contents.message.document.mime_type) {
+        case 'application/zip':
+            sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
+            const month_names = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+            ];
+            var curr_date = new Date();
+            var unzip_file = getAndUnzipFileFromServer(user_id, file_path);
+            var curr_month = month_names[curr_date.getMonth()].toUpperCase();
+            var user_curr_month_file = getJsonFileFromUnzip(user_id, unzip_file, curr_month);
+            user_locations_arr.push(user_curr_month_file);
+            // handle case where we need to check both previous and current month
+            if(curr_date.getDay() < 14) {
+                // ERROR on January, doesn't matter at the moment
+                var prev_month = month_names[curr_date.getMonth() - 1].toUpperCase();
+                var user_prev_month_file = getJsonFileFromUnzip(user_id, unzip_file, prev_month);
+                user_locations_arr.push(user_prev_month_file);
+            }
+            break;
+        default:
+            var user_locations_file = getJsonFileFromTelegramServer(user_id, file_path);
+            console.log(user_locations_file);
+            user_locations_arr.push(user_locations_file);
+            break; 
     }
-    
-    try{
-        searchMatchLocations(user_id, user_locations_file);
-    } catch (error) {
-        sendMessage(user_id, 'אירעה שגיאה בניתוח נתוני המיקום. עמכם הסליחה.%0A קוד שגיאה:%0A' + encodeURI(error.message));
-        return;
+    console.log(user_locations_arr);
+    var need_isolate = searchMatchLocations(user_id, user_locations_arr);
+    if(!need_isolate){
+        sendMessage(user_id, getOkMessage());
     }
     sendMessage(user_id, 'עדכון מפה אחרון: ' + getLastUpdate());
 }
 
-function getFilePath(file_id) {
-    var response = UrlFetchApp.fetch(url + getBotToken() + '/getFile?file_id=' + file_id);
-    var file_path = JSON.parse(response.getContentText()).result.file_path;
-    return file_path;
+function getFilePath(user_id, file_id) {
+    try {
+        var response = UrlFetchApp.fetch(url + getBotToken() + '/getFile?file_id=' + file_id);
+        var file_path = JSON.parse(response.getContentText()).result.file_path;
+        return file_path;
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בקבלת כתובת הקובץ מהשרת.%0A אם קובץ הזיפ שוקל מעל 20MB ניתן להעלות את קובץ המיקום ידנית. להוראות לחצו: /manualupload %0A קוד שגיאה: ' + encodeURI(error.message));
+        throw new Error('אירעה שגיאה בקבלת כתובת הקובץ מהשרת. %0A קוד שגיאה:'  + encodeURI(error.message));
+    }
 }
 
-function getJsonFileFromTelegramServer(file_path) {
-    var json_file = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
-    json_file = JSON.parse(json_file);
-    return json_file;
+function getJsonFileFromTelegramServer(user_id, file_path) {
+    try {
+        var json_file = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
+        json_file = JSON.parse(json_file);
+        return json_file;
+
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בהורדת הקובץ מהשרת.%0A קוד שגיאה:%0A' + encodeURI(error.message));
+        throw new Error('אירעה שגיאה בהורדת הקובץ מהשרת. %0A קוד שגיאה:%0A' + encodeURI(error.message));
+    }
 }
 
-function getJsonFileFromZip(file_path) {
+function getAndUnzipFileFromServer(user_id, file_path) {
+    try {
+        var zipFile = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
+        var thisBlob = zipFile.getBlob();
+        var convertedBlob = thisBlob.setContentTypeFromExtension();
+        var thisUnzip = Utilities.unzip(convertedBlob);
+        return thisUnzip;
 
-    var zipFile = UrlFetchApp.fetch(files_url + getBotToken() + '/' + file_path);
-    var thisBlob = zipFile.getBlob();
-    var convertedBlob = thisBlob.setContentTypeFromExtension();
-    var thisUnzip = Utilities.unzip(convertedBlob);
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-    var current= monthNames[d.getMonth()].toUpperCase()
-    var extract = thisUnzip.filter(e => 
-        e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_' + current + '.json'
-    || e.getName() === 'Takeout/היסטוריית מיקומים/Semantic Location History/2020/2020_' + current + '.json');
-    var str = extract[0].getDataAsString();
-    var js = JSON.parse(str);
-    return js;
-    
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בפענוח קובץ זיפ. ניתן להעלות את קובץ המיקום ידנית.%0Aלהוראות לחצו /manualupload %0Aקוד שגיאה:' + encodeURI(error.message));
+        throw new Error('אירעה שגיאה בפענוח קובץ זיפ. %0Aקוד שגיאה: ' + encodeURI(error.message));
+    }
+}
+
+function getJsonFileFromUnzip(user_id, unzip_file, month) {
+    try{
+        
+        var extract = unzip_file.filter(e => 
+            e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_' + month + '.json'
+        || e.getName() === 'Takeout/היסטוריית מיקומים/Semantic Location History/2020/2020_' + month + '.json');
+        var str = extract[0].getDataAsString();
+        var js = JSON.parse(str);
+        return js;
+
+    } catch (error) {
+        sendMessage(user_id, 'אירעה שגיאה בחילוץ הקובץ מתוך הזיפ. ניתן להעלות את קובץ המיקום ידנית.%0Aלהוראות לחצו /manualupload %0Aקוד שגיאה: ' + encodeURI(error.message));
+        throw new Error('אירעה שגיאה בחילוץ הקובץ מתוך הזיפ. %0Aקוד שגיאה:' + encodeURI(error.message));
+    }
 }

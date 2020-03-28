@@ -24,14 +24,11 @@ function searchMatchLocations(user_id, user_locations_arr) {
   
     try {
         var found_match = false;
-        console.log('searchMatchLocations');
         for(let i=0; i< user_locations_arr.length; i++) {
             const user_locations_file = user_locations_arr[i];
-            console.log('searchMatchLocations user_locations_file: ' + user_locations_file);
 
             var timelineObjects = user_locations_file.timelineObjects;
             var placeVisit = searchInJson(timelineObjects, 'placeVisit');
-            console.log('searchMatchLocations placeVisit: ' + placeVisit);
 
             var corona_locations = getJsonFileFromDrive(sicks_locations_file_id);
 

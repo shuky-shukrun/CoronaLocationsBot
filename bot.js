@@ -79,6 +79,7 @@ function doPost(e) {
     var user_locations_arr = [];
     switch(contents.message.document.mime_type) {
         case 'application/zip':
+            console.log('zip file sent to the bot');
             sendMessage(user_id, 'ניתוח קובץ זיפ עשוי לקחת מספר דקות, ניתן לצאת מהבוט והודעה תישלח אליכם ברגע שהמידע יהיה מוכן');
             const month_names = ["January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
@@ -97,12 +98,12 @@ function doPost(e) {
             }
             break;
         default:
+            console.log('json file sent to the bot');
             var user_locations_file = getJsonFileFromTelegramServer(user_id, file_path);
             console.log(user_locations_file);
             user_locations_arr.push(user_locations_file);
             break; 
     }
-    console.log(user_locations_arr);
     var need_isolate = searchMatchLocations(user_id, user_locations_arr);
     if(!need_isolate){
         sendMessage(user_id, getOkMessage());

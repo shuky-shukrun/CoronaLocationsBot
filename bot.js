@@ -105,8 +105,11 @@ function doPost(e) {
             break; 
     }
     var need_isolate = searchMatchLocations(user_id, user_locations_arr);
-    if(!need_isolate){
+    if(need_isolate){
+        console.log('isolate is needed');
+    } else {
         sendMessage(user_id, getOkMessage());
+        console.log('isolate is not needed');
     }
     sendMessage(user_id, 'עדכון מפה אחרון: ' + getLastUpdate());
 }

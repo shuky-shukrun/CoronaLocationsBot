@@ -129,9 +129,13 @@ function getJsonFileFromZip(file_path) {
     var thisBlob = zipFile.getBlob();
     var convertedBlob = thisBlob.setContentTypeFromExtension();
     var thisUnzip = Utilities.unzip(convertedBlob);
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+    var current= monthNames[d.getMonth()].toUpperCase()
     var extract = thisUnzip.filter(e => 
-        e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_MARCH.json'
-    || e.getName() === 'Takeout/היסטוריית מיקומים/Semantic Location History/2020/2020_MARCH.json');
+        e.getName() === 'Takeout/Location History/Semantic Location History/2020/2020_' + current + '.json'
+    || e.getName() === 'Takeout/היסטוריית מיקומים/Semantic Location History/2020/2020_' + current + '.json');
     var str = extract[0].getDataAsString();
     var js = JSON.parse(str);
     return js;

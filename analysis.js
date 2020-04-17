@@ -57,7 +57,10 @@ function isCloseLocation(user_lat, sick_lat, user_long, sick_long) {
 }
 
 function isCloseTime(sick_start_time, user_end_time) {
-    return (sick_start_time <= user_end_time);
+    if(sick_start_time.getDate() == user_end_time.getDate()
+    && sick_start_time.getDay() == user_end_time.getDay())
+        return (sick_start_time <= user_end_time);
+    return false;
 }
 
 function getSickTime(sickLocation) {
